@@ -1,0 +1,4 @@
+function addItem() { const row=document.querySelector('.item-row'); const clone=row.cloneNode(true); clone.querySelectorAll('input').forEach(i=>i.value=''); document.getElementById('items').appendChild(clone); }
+function removeItem(btn) { const rows=document.querySelectorAll('.item-row'); if(rows.length>1) btn.closest('.item-row').remove(); calculateTotal(); }
+function calculateTotal(){let t=0;document.querySelectorAll('.item-row').forEach(r=>{let q=parseFloat(r.querySelector('.qty').value)||0,p=parseFloat(r.querySelector('.price').value)||0,s=q*p;r.querySelector('.subtotal').value=s.toFixed(2);t+=s});let el=document.getElementById('order-total');if(el)el.textContent=t.toFixed(2)}
+function copyMessage(){navigator.clipboard.writeText(document.getElementById('order-message').innerText).then(()=>alert('Order message copied.'));}
