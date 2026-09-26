@@ -3,7 +3,7 @@ $page_title = 'Dashboard';
 $count = function ($sql) use ($pdo) {
     return $pdo->query($sql)->fetchColumn();
 };
-$stats = ['Total Suppliers' => $count('SELECT COUNT(*) FROM suppliers'), 'Pending Orders' => $count("SELECT COUNT(*) FROM orders WHERE status IN ('Pending','Scheduled')"), 'Upcoming Deliveries' => $count("SELECT COUNT(*) FROM orders WHERE expected_delivery_date>=CURDATE() AND status IN ('Pending','Scheduled')"), 'Incomplete Deliveries' => $count("SELECT COUNT(*) FROM orders WHERE status='Incomplete'"), 'Low Stock Items' => $count('SELECT COUNT(*) FROM inventory WHERE quantity BETWEEN 1 AND 10')];
+$stats = ['Total Suppliers' => $count('SELECT COUNT(*) FROM suppliers'), 'Pending Orders' => $count("SELECT COUNT(*) FROM orders WHERE status IN ('Pending','Scheduled')"), 'Upcoming Deliveries' => $count("SELECT COUNT(*) FROM orders WHERE expected_delivery_date>=CURDATE() AND status IN ('Pending','Scheduled')"), 'Incomplete Deliveries' => $count("SELECT COUNT(*) FROM orders WHERE status='Incomplete'"), 'Low Stock Items' => $count('SELECT COUNT(*) FROM inventory WHERE quantity <= low_stock_threshold')];
 $orders = $pdo->query('SELECT o.*,s.supplier_name FROM orders o JOIN suppliers s ON s.id=o.supplier_id ORDER BY o.id DESC LIMIT 8')->fetchAll();
 require 'includes/header.php'; ?>
 <div class="cards"><?php foreach ($stats as $label => $value): ?><div class="card"><label><?= e($label) ?></label><strong><?= $value ?></strong></div><?php endforeach; ?></div>

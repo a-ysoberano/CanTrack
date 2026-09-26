@@ -15,9 +15,19 @@ try {
     exit('Database connection failed. Import database/school_canteen.sql and check config/database.php.');
 }
 
-function e($value) { return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8'); }
-function badge($status) { return '<span class="badge badge-'.strtolower(str_replace(' ', '-', $status)).'">'.e($status).'</span>'; }
-function redirect($url) { header('Location: '.$url); exit; }
+function e($value)
+{
+    return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
+}
+function badge($status)
+{
+    return '<span class="badge badge-' . strtolower(str_replace(' ', '-', $status)) . '">' . e($status) . '</span>';
+}
+function redirect($url)
+{
+    header('Location: ' . $url);
+    exit;
+}
 
 // Every page that requires this file needs a signed-in session, except the
 // login/logout pages themselves.

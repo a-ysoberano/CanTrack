@@ -1,11 +1,20 @@
 <?php require 'config/database.php';
 $page_title = 'Deliveries';
-$rows = $pdo->query("SELECT o.*,s.supplier_name,d.actual_delivery_date,d.status delivery_status FROM orders o JOIN suppliers s ON s.id=o.supplier_id LEFT JOIN deliveries d ON d.order_id=o.id WHERE o.status NOT IN ('Cancelled') ORDER BY o.expected_delivery_date DESC")->fetchAll();
+$search = trim($_GET['search'] ?? '');
+$sql = "SELECT o.*,s.supplier_name,d.actual_delivery_date,d.reference_number delivery_reference,d.status delivery_status FROM orders o JOIN suppliers s ON s.id=o.supplier_id LEFT JOIN deliveries d ON d.order_id=o.id WHERE o.status NOT IN ('Cancelled')";
+if ($search !== '') {
+    $stmt = $pdo->prepare($sql . ' AND (s.supplier_name LIKE ? OR CAST(o.id AS CHAR) LIKE ? OR d.reference_number LIKE ?) ORDER BY o.expected_delivery_date DESC');
+    $stmt->execute(['%' . $search . '%', '%' . $search . '%', '%' . $search . '%']);
+    $rows = $stmt->fetchAll();
+} else $rows = $pdo->query($sql . ' ORDER BY o.expected_delivery_date DESC')->fetchAll();
 require 'includes/header.php'; ?>
 <div class="panel">
     <div class="panel-head">
         <h2>Delivery Tracking</h2>
     </div>
+    <form class="filter" method="get">
+        <div><label>Find a delivery</label><input name="search" value="<?= e($search) ?>" placeholder="Order, supplier, or reference"></div><button class="btn">Search</button><a class="btn light" href="deliveries.php">Clear</a>
+    </form>
     <table>
         <tr>
             <th>Order ID</th>

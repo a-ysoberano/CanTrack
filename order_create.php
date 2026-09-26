@@ -4,7 +4,7 @@ $suppliers = $pdo->query('SELECT * FROM suppliers ORDER BY supplier_name')->fetc
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $pdo->beginTransaction();
-        $pdo->prepare('INSERT INTO orders(supplier_id,order_date,expected_delivery_date,notes,status) VALUES(?,?,?,?,?)')->execute([$_POST['supplier_id'], $_POST['order_date'], $_POST['expected_delivery_date'], $_POST['notes'], $_POST['status']]);
+        $pdo->prepare('INSERT INTO orders(supplier_id,reference_number,order_date,expected_delivery_date,notes,status) VALUES(?,?,?,?,?,?)')->execute([$_POST['supplier_id'], trim($_POST['reference_number']), $_POST['order_date'], $_POST['expected_delivery_date'], $_POST['notes'], $_POST['status']]);
         $orderId = $pdo->lastInsertId();
         $item = $pdo->prepare('INSERT INTO order_items(order_id,product_id,product_name,quantity,unit,unit_price) VALUES(?,?,?,?,?,?)');
         $product = $pdo->prepare('INSERT INTO products(product_name,default_unit,supplier_id) VALUES(?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)');
@@ -31,6 +31,7 @@ require 'includes/header.php'; ?>
                         <option>Pending</option>
                         <option>Scheduled</option>
                     </select></div>
+                <div><label>Reference Number</label><input name="reference_number" placeholder="Optional order reference"></div>
                 <div><label>Order Date *</label><input required type="date" name="order_date" value="<?= date('Y-m-d') ?>"></div>
                 <div><label>Expected Delivery Date *</label><input required type="date" name="expected_delivery_date"></div>
                 <div class="full"><label>Notes</label><textarea name="notes"></textarea></div>

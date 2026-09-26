@@ -1,26 +1,11 @@
-<?php require 'config/database.php';
-$page_title = 'Inventory';
-$items = $pdo->query("SELECT i.*,s.supplier_name,CASE WHEN i.quantity<=0 THEN 'Out of Stock' WHEN i.quantity<=10 THEN 'Low' ELSE 'Good' END stock_status FROM inventory i LEFT JOIN suppliers s ON s.id=i.supplier_id ORDER BY i.product_name")->fetchAll();
-require 'includes/header.php'; ?>
-<div class="panel">
-    <div class="panel-head">
-        <h2>Current Inventory</h2><span class="muted">Updated only when deliveries are recorded</span>
-    </div>
-    <table>
-        <tr>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Unit</th>
-            <th>Supplier</th>
-            <th>Last Received</th>
-            <th>Stock Status</th>
-        </tr><?php foreach ($items as $i): ?><tr>
-                <td><?= e($i['product_name']) ?></td>
-                <td><?= $i['quantity'] ?></td>
-                <td><?= e($i['unit']) ?></td>
-                <td><?= e($i['supplier_name'] ?: '—') ?></td>
-                <td><?= $i['last_received'] ?: '—' ?></td>
-                <td><?= badge($i['stock_status']) ?></td>
-            </tr><?php endforeach; ?>
-    </table>
-</div><?php require 'includes/footer.php'; ?>
+<?php
+require 'config/database.php'; $page_title='Inventory';
+$suppliers=$pdo->query('SELECT id,supplier_name FROM suppliers ORDER BY supplier_name')->fetchAll();
+if($_SERVER['REQUEST_METHOD']==='POST'){try{
+ if($_POST['action']==='add'){ $name=trim($_POST['product_name']); if($name==='')throw new Exception('Product name is required.'); $pdo->beginTransaction(); $p=$pdo->prepare('INSERT INTO products(product_name,default_unit,supplier_id) VALUES(?,?,?) ON DUPLICATE KEY UPDATE id=LAST_INSERT_ID(id)');$p->execute([$name,$_POST['unit'],$_POST['supplier_id']?:null]);$pdo->prepare('INSERT INTO inventory(product_id,product_name,quantity,unit,low_stock_threshold,supplier_id,last_received) VALUES(?,?,?,?,?,?,?)')->execute([$pdo->lastInsertId(),$name,max(0,$_POST['quantity']),$_POST['unit'],max(0,$_POST['low_stock_threshold']),$_POST['supplier_id']?:null,$_POST['quantity']>0?date('Y-m-d'):null]);$pdo->commit();redirect('inventory.php'); }
+ if($_POST['action']==='adjust'){ $id=(int)$_POST['inventory_id'];$reason=trim($_POST['adjustment_reason']);if($reason==='')throw new Exception('A reason is required for an adjustment.');$pdo->beginTransaction();$get=$pdo->prepare('SELECT quantity FROM inventory WHERE id=? FOR UPDATE');$get->execute([$id]);$old=$get->fetchColumn();if($old===false)throw new Exception('Inventory item was not found.');$new=max(0,(float)$_POST['new_quantity']);$pdo->prepare('UPDATE inventory SET quantity=?,low_stock_threshold=? WHERE id=?')->execute([$new,max(0,$_POST['low_stock_threshold']),$id]);$pdo->prepare('INSERT INTO stock_adjustments(inventory_id,previous_quantity,new_quantity,adjustment_reason) VALUES(?,?,?,?)')->execute([$id,$old,$new,$reason]);$pdo->commit();redirect('inventory.php'); }
+}catch(Exception $e){if($pdo->inTransaction())$pdo->rollBack();$error=$e->getMessage();}}
+$search=trim($_GET['search']??'');$sql="SELECT i.*,s.supplier_name,CASE WHEN i.quantity<=0 THEN 'Out of Stock' WHEN i.quantity<=i.low_stock_threshold THEN 'Low' ELSE 'Good' END stock_status FROM inventory i LEFT JOIN suppliers s ON s.id=i.supplier_id";if($search!==''){$st=$pdo->prepare($sql.' WHERE i.product_name LIKE ? ORDER BY i.product_name');$st->execute(['%'.$search.'%']);}else $st=$pdo->query($sql.' ORDER BY i.product_name');$items=$st->fetchAll();$history=$pdo->query('SELECT a.*,i.product_name,i.unit FROM stock_adjustments a JOIN inventory i ON i.id=a.inventory_id ORDER BY a.adjusted_at DESC LIMIT 12')->fetchAll();require 'includes/header.php'; ?>
+<?php if(isset($error)):?><p class="notice"><?=e($error)?></p><?php endif;?><div class="panel"><div class="panel-head"><h2>Inventory monitoring</h2><span class="muted">Stock increases when a delivery is recorded.</span></div><form class="filter" method="get"><div><label>Find an item</label><input name="search" value="<?=e($search)?>" placeholder="Product name"></div><button class="btn">Search</button><a class="btn light" href="inventory.php">Clear</a></form><div class="table-wrap"><table><tr><th>Product</th><th>Quantity</th><th>Low-stock level</th><th>Unit</th><th>Supplier</th><th>Last received</th><th>Status</th><th>Action</th></tr><?php foreach($items as $i):?><tr><td><?=e($i['product_name'])?></td><td><?=$i['quantity']?></td><td><?=$i['low_stock_threshold']?></td><td><?=e($i['unit'])?></td><td><?=e($i['supplier_name']?:'—')?></td><td><?=$i['last_received']?:'—'?></td><td><?=badge($i['stock_status'])?></td><td><button class="btn light" type="button" onclick="document.getElementById('adjust-<?=$i['id']?>').hidden=false">Adjust</button></td></tr><tr id="adjust-<?=$i['id']?>" hidden><td colspan="8"><form method="post" class="adjust-form"><input type="hidden" name="action" value="adjust"><input type="hidden" name="inventory_id" value="<?=$i['id']?>"><div><label>Recorded quantity</label><input readonly value="<?=$i['quantity']?>"></div><div><label>Physical count *</label><input required name="new_quantity" type="number" min="0" step="0.01" value="<?=$i['quantity']?>"></div><div><label>Low-stock level *</label><input required name="low_stock_threshold" type="number" min="0" step="0.01" value="<?=$i['low_stock_threshold']?>"></div><div><label>Reason *</label><input required name="adjustment_reason" placeholder="e.g. Physical count"></div><button class="btn">Save adjustment</button></form></td></tr><?php endforeach;?></table></div></div>
+<div class="panel"><h2>Add inventory item</h2><form method="post"><input type="hidden" name="action" value="add"><div class="form-grid"><div><label>Product *</label><input required name="product_name"></div><div><label>Unit *</label><input required name="unit" value="pcs"></div><div><label>Current quantity *</label><input required min="0" step="0.01" type="number" name="quantity" value="0"></div><div><label>Low-stock level *</label><input required min="0" step="0.01" type="number" name="low_stock_threshold" value="10"></div><div><label>Supplier</label><select name="supplier_id"><option value="">Not assigned</option><?php foreach($suppliers as $s):?><option value="<?=$s['id']?>"><?=e($s['supplier_name'])?></option><?php endforeach;?></select></div></div><div class="form-actions"><button class="btn">Add inventory item</button></div></form></div>
+<div class="panel"><h2>Recent stock adjustments</h2><div class="table-wrap"><table><tr><th>Item</th><th>Previous</th><th>New</th><th>Reason</th><th>Adjusted at</th></tr><?php foreach($history as $h):?><tr><td><?=e($h['product_name'])?></td><td><?=$h['previous_quantity'].' '.e($h['unit'])?></td><td><?=$h['new_quantity'].' '.e($h['unit'])?></td><td><?=e($h['adjustment_reason'])?></td><td><?=$h['adjusted_at']?></td></tr><?php endforeach;?></table></div></div><?php require 'includes/footer.php'; ?>

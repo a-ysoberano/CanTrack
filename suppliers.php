@@ -4,12 +4,20 @@ if (isset($_GET['delete'])) {
     $pdo->prepare('DELETE FROM suppliers WHERE id=?')->execute([$_GET['delete']]);
     redirect('suppliers.php');
 }
-$suppliers = $pdo->query('SELECT * FROM suppliers ORDER BY supplier_name')->fetchAll();
+$search = trim($_GET['search'] ?? '');
+if ($search !== '') {
+    $stmt = $pdo->prepare('SELECT * FROM suppliers WHERE supplier_name LIKE ? OR contact_person LIKE ? OR contact_number LIKE ? ORDER BY supplier_name');
+    $stmt->execute(['%' . $search . '%', '%' . $search . '%', '%' . $search . '%']);
+    $suppliers = $stmt->fetchAll();
+} else $suppliers = $pdo->query('SELECT * FROM suppliers ORDER BY supplier_name')->fetchAll();
 require 'includes/header.php'; ?>
 <div class="panel">
     <div class="panel-head">
         <h2>Supplier List</h2><a class="btn" href="supplier_add.php">+ Add Supplier</a>
     </div>
+    <form class="filter" method="get">
+        <div><label>Find a supplier</label><input name="search" value="<?= e($search) ?>" placeholder="Name, contact, or number"></div><button class="btn">Search</button><a class="btn light" href="suppliers.php">Clear</a>
+    </form>
     <div class="table-wrap">
         <table>
             <tr>

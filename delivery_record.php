@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ((float)$_POST['delivered'][$i['id']] < (float)$i['quantity']) $complete = false;
         }
         $status = $complete ? 'Delivered' : 'Incomplete';
-        $pdo->prepare('INSERT INTO deliveries(order_id,actual_delivery_date,notes,status) VALUES(?,?,?,?)')->execute([$orderId, $_POST['actual_delivery_date'], $_POST['notes'], $status]);
+        $pdo->prepare('INSERT INTO deliveries(order_id,reference_number,actual_delivery_date,notes,status) VALUES(?,?,?,?,?)')->execute([$orderId, trim($_POST['reference_number']), $_POST['actual_delivery_date'], $_POST['notes'], $status]);
         $deliveryId = $pdo->lastInsertId();
         $di = $pdo->prepare('INSERT INTO delivery_items(delivery_id,order_item_id,delivered_quantity) VALUES(?,?,?)');
         $inv = $pdo->prepare('INSERT INTO inventory(product_id,product_name,quantity,unit,supplier_id,last_received) VALUES(?,?,?,?,?,?) ON DUPLICATE KEY UPDATE quantity=quantity+VALUES(quantity),unit=VALUES(unit),supplier_id=VALUES(supplier_id),last_received=VALUES(last_received)');
@@ -37,6 +37,7 @@ require 'includes/header.php'; ?>
 <div class="panel">
     <h2>Order #<?= $o['id'] ?> — <?= e($o['supplier_name']) ?></h2><?php if (isset($error)): ?><p class="notice"><?= e($error) ?></p><?php endif; ?><form method="post">
         <div class="form-grid">
+            <div><label>Delivery Reference Number</label><input name="reference_number" placeholder="Receipt or delivery note number"></div>
             <div><label>Actual Delivery Date *</label><input required type="date" name="actual_delivery_date" value="<?= date('Y-m-d') ?>"></div>
             <div><label>Expected Delivery</label><input readonly value="<?= $o['expected_delivery_date'] ?>"></div>
             <div class="full"><label>Delivery Notes</label><textarea name="notes" placeholder="Note any missing or damaged items."></textarea></div>

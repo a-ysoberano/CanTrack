@@ -13,12 +13,12 @@ require 'includes/header.php'; ?>
 <div class="panel">
     <div class="panel-head no-print">
         <h2>Order Details <?= badge($o['status']) ?></h2>
-        <div class="actions"><button class="btn secondary" onclick="window.print()">Print Order</button><?php if (!in_array($o['status'], ['Delivered', 'Incomplete', 'Cancelled'])): ?><a class="btn" href="delivery_record.php?order_id=<?= $o['id'] ?>">Record Delivery</a><?php endif; ?></div>
+        <div class="actions"><button class="btn secondary" onclick="window.print()">Print / Save PDF</button><?php if (!in_array($o['status'], ['Delivered', 'Incomplete', 'Cancelled'])): ?><a class="btn" href="delivery_record.php?order_id=<?= $o['id'] ?>">Record Delivery</a><?php endif; ?></div>
     </div>
     <h2 class="print-title" style="display:none">School Canteen Purchase Order</h2>
     <div class="form-grid">
         <div><label>Supplier</label><?= e($o['supplier_name']) ?><br><span class="muted"><?= e($o['contact_person']) ?> <?= e($o['contact_number']) ?></span></div>
-        <div><label>Order ID</label>#<?= $o['id'] ?></div>
+        <div><label>Order ID</label>#<?= $o['id'] ?><?= $o['reference_number'] ? ' · ' . e($o['reference_number']) : '' ?></div>
         <div><label>Order Date</label><?= $o['order_date'] ?></div>
         <div><label>Expected Delivery</label><?= $o['expected_delivery_date'] ?></div>
     </div>

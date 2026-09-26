@@ -6,7 +6,7 @@ $o = $stmt->fetch();
 if (!$o) redirect('orders.php');
 $suppliers = $pdo->query('SELECT * FROM suppliers ORDER BY supplier_name')->fetchAll();
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $pdo->prepare('UPDATE orders SET supplier_id=?,order_date=?,expected_delivery_date=?,notes=?,status=? WHERE id=?')->execute([$_POST['supplier_id'], $_POST['order_date'], $_POST['expected_delivery_date'], $_POST['notes'], $_POST['status'], $id]);
+    $pdo->prepare('UPDATE orders SET supplier_id=?,reference_number=?,order_date=?,expected_delivery_date=?,notes=?,status=? WHERE id=?')->execute([$_POST['supplier_id'], trim($_POST['reference_number']), $_POST['order_date'], $_POST['expected_delivery_date'], $_POST['notes'], $_POST['status'], $id]);
     redirect('order_view.php?id=' . $id);
 }
 $page_title = 'Edit Order #' . $id;
@@ -16,6 +16,7 @@ require 'includes/header.php'; ?>
         <div class="form-grid">
             <div><label>Supplier</label><select name="supplier_id"><?php foreach ($suppliers as $s): ?><option value="<?= $s['id'] ?>" <?= $s['id'] == $o['supplier_id'] ? 'selected' : '' ?>><?= e($s['supplier_name']) ?></option><?php endforeach; ?></select></div>
             <div><label>Status</label><select name="status"><?php foreach (['Pending', 'Scheduled', 'Cancelled'] as $v): ?><option <?= $v == $o['status'] ? 'selected' : '' ?>><?= $v ?></option><?php endforeach; ?></select></div>
+            <div><label>Reference Number</label><input name="reference_number" value="<?= e($o['reference_number']) ?>"></div>
             <div><label>Order Date</label><input type="date" name="order_date" value="<?= $o['order_date'] ?>"></div>
             <div><label>Expected Delivery</label><input type="date" name="expected_delivery_date" value="<?= $o['expected_delivery_date'] ?>"></div>
             <div class="full"><label>Notes</label><textarea name="notes"><?= e($o['notes']) ?></textarea></div>

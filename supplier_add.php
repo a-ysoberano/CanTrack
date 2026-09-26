@@ -8,6 +8,11 @@ $view = isset($_GET['id']) ? $pdo->prepare('SELECT * FROM suppliers WHERE id=?')
 if ($view) {
     $view->execute([$_GET['id']]);
     $s = $view->fetch();
+    if ($s) {
+        $history = $pdo->prepare('SELECT id,reference_number,order_date,expected_delivery_date,status FROM orders WHERE supplier_id=? ORDER BY order_date DESC');
+        $history->execute([$s['id']]);
+        $history = $history->fetchAll();
+    }
 }
 require 'includes/header.php'; ?>
 <div class="panel">
@@ -19,6 +24,24 @@ require 'includes/header.php'; ?>
             <div><label>Contact Number</label><?= e($s['contact_number']) ?></div>
             <div><label>Products Supplied</label><?= e($s['products_supplied']) ?></div>
             <div class="full"><label>Address</label><?= nl2br(e($s['address'])) ?></div>
+        </div>
+        <h3>Previous orders</h3>
+        <div class="table-wrap">
+            <table>
+                <tr>
+                    <th>Order</th>
+                    <th>Reference no.</th>
+                    <th>Order date</th>
+                    <th>Expected delivery</th>
+                    <th>Status</th>
+                </tr><?php foreach ($history as $order): ?><tr>
+                        <td><a href="order_view.php?id=<?= $order['id'] ?>">#<?= $order['id'] ?></a></td>
+                        <td><?= e($order['reference_number'] ?: '—') ?></td>
+                        <td><?= $order['order_date'] ?></td>
+                        <td><?= $order['expected_delivery_date'] ?></td>
+                        <td><?= badge($order['status']) ?></td>
+                    </tr><?php endforeach; ?>
+            </table>
         </div>
         <p><a class="btn" href="supplier_edit.php?id=<?= $s['id'] ?>">Edit Supplier</a> <a class="btn secondary" href="suppliers.php">Back</a></p><?php else: ?><form method="post">
             <div class="form-grid">
